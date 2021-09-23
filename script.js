@@ -123,9 +123,7 @@ class player{
             this.xa -= x_scale/15;
         }
 
-        if(KEYS["w"]){
-            this.ya = -y_scale;
-        }
+        
 
         if(KEYS["ArrowRight"]){
             this.dira += 0.01;
@@ -136,20 +134,21 @@ class player{
         }
 
         if(KEYS[" "]){
-            if(this.shotstep > 10){
+            if(this.shotstep > 20){
             this.shotstep = 0
-            new explosion_particle(this.x,this.y,this.dir,x_scale/2.1 ,"none",this.size,5);
+            new explosion_particle(this.x+(this.size/2*x_scale),this.y+(this.size/2*y_scale),this.dir,x_scale/2.1 ,"none",this.size+2,5);
             }
         }
 
         if(KEYS["f"]){
             if(this.shotstep > 20){
                 this.shotstep = 0
-                new projectile(this.x,this.y,this.dir,"grenade");
+                new projectile(this.x+(this.size/2*x_scale),this.y+(this.size/2*y_scale),this.dir,"grenade");
             }
         }
         
-        
+         // land col
+
         if(ypos+this.size !== land_y && xpos+this.size < land_x){
             for(let sizeposy= 0;sizeposy<this.size ; sizeposy++){
                 if(LANDSCAPE[ypos+sizeposy][xpos+this.size].collision){
@@ -170,6 +169,12 @@ class player{
                 if(LANDSCAPE[ypos+this.size][xpos+sizeposx].collision){
                     this.y = (ypos*y_scale)-0.0001;
                     this.ya = 0
+                    if(KEYS["d"] || KEYS["a"]){
+                        this.ya -= y_scale/this.size/2;
+                    }
+                    if(KEYS["w"]){
+                        this.ya = -y_scale*2;
+                    }
                 }
             }
             
@@ -190,21 +195,23 @@ class player{
         this.y += this.ya;
         this.x += this.xa;
         this.dir += this.dira;
+
+        // border col
         
-        if(this.y >= canvas2.height-y_scale*this.size){
-            this.y = canvas2.height-y_scale*this.size;
+        if(this.y >= canvas2.height-(y_scale*this.size)){
+            this.y = canvas2.height-(y_scale*this.size)-y_scale;
         }
 
         if(this.y < 0){
-            this.y = 0;
+            this.y = y_scale;
         }
         
         if(this.x+(this.size*x_scale) > canvas2.width){
-            this.x = canvas2.width-(this.size*x_scale);
+            this.x = canvas2.width-(this.size*x_scale)-x_scale;
         }
 
         if(this.x < 0){
-            this.x = 0;
+            this.x = x_scale;
         }
         
     }
@@ -249,6 +256,7 @@ class projectile {
         this.type = type;
         this.settype();
         this.ya = 0;
+        this.vel = this.vel
 
 
         if(vel !== null){
@@ -324,8 +332,8 @@ class projectile {
 class explosion_particle{
     
     constructor(x,y,dir,vel,grav,size,speeddeath){
-        this.x = x-size;
-        this.y = y-size;
+        this.x = x-(size*x_scale/2);
+        this.y = y-(size*y_scale/2);
         this.dir = dir;
         this.vel = vel;
         this.grav = grav;
@@ -378,7 +386,11 @@ class explosion_particle{
         if(ypos+this.size < land_y && xpos+this.size < land_x){
             for(let sizeposx= 0;sizeposx<this.size+1 ; sizeposx++){
             for(let sizeposy= 0;sizeposy<this.size+1 ; sizeposy++){  
-            LANDSCAPE[ypos+sizeposy][xpos+sizeposx].destroy();
+                if((sizeposx === 0 || sizeposy === 0 || sizeposx === this.size || sizeposy === this.size) && LANDSCAPE[ypos+sizeposy][xpos+sizeposx].collision){
+                    LANDSCAPE[ypos+sizeposy][xpos+sizeposx].changecolor("hsl("+(35+randomrange(-5,5))+", "+randomrange(50,90)+"%, 10%")
+                }else{
+                    LANDSCAPE[ypos+sizeposy][xpos+sizeposx].destroy();
+                }
             }}       
         }
 
@@ -388,8 +400,7 @@ class explosion_particle{
     render(){
         ctx2.strokeStyle = "black";
         ctx2.strokeRect(this.x,this.y,this.size*x_scale,this.size*y_scale);
-        ctx2.fillStyle = "white";
-        ctx2.fillRect(this.x,this.y,this.size*x_scale,this.size*y_scale);
+        
     }
 
 }
@@ -417,7 +428,7 @@ function createcricle(x,y,range){
     y = Math.floor(y/y_scale)-Math.round(range/2);
     for(let posy= 0;posy<range; posy++){  
     for(let posx= 0;posx<range; posx++){
-        if(x+posx<land_x && y+posy < land_y){
+        if(x+posx<land_x && y+posy < land_y && x+posx > 0 && y+posy > 0){
         if(distance(x+posx,x+(range/2),y+posy,y+(range/2)) < range/2.15){
             LANDSCAPE[y+posy][x+posx].destroy();
         }else if(distance(x+posx,x+(range/2),y+posy,y+(range/2)) < range/2){
@@ -427,7 +438,7 @@ function createcricle(x,y,range){
         }
         }
         else{
-            console.log(y+posy,x+posx,"outside errror");
+            console.log(y,x,"outside errror");
         }
     }}   
 }
@@ -437,7 +448,7 @@ function generateland(){
     genyland.push(randomrange(land_y/3,land_y/1.5));
     for(let x = 1; x<land_x;x++){
         switch(randomrange(0,10)){
-
+ 
             case 0:
                 case 1:
                 case 2:
