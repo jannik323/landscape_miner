@@ -400,10 +400,9 @@ function createrectanlge(x,y,width,height){
 }
 
 function createcricle(x,y,range){
-    x -= range;
-    y -= range;
-    x = Math.floor(x/x_scale);
-    y = Math.floor(y/y_scale);
+
+    x = Math.floor(x/x_scale)-Math.floor(range/x_scale*2);
+    y = Math.floor(y/y_scale)-Math.floor(range/x_scale*2);
     for(let posy= 0;posy<range; posy++){  
     for(let posx= 0;posx<range; posx++){
         if(x+posx<land_x && y+posy < land_y){
