@@ -37,23 +37,22 @@ const PROJECTILES = [];
 
 class block{
 
-    constructor(color="black",x,y){
+    constructor(color="black",x=0,y=0,collision=false){
         this.color = color;
         this.x = x;
         this.y = y;
+        this.collision = collision;
         this.render();
+    }
+
+    destroy(){
+        this.collision = false;
+        this.changecolor("white");
     }
 
     changecolor(color){
         this.color = color;
         this.render();        
-    }
-
-    togglecolor(){
-        if(this.color ==="black")
-        {this.changecolor("white")}
-        else
-        {this.changecolor("black")}
     }
 
     render(){
@@ -81,9 +80,10 @@ for(let y = 0; y < land_y; y++){
     LANDSCAPE[y] = [];
     for(let x = 0; x < land_x; x++){
         if(y< generatedland[x]){
-            LANDSCAPE[y].push(new block("white",x,y));
+            LANDSCAPE[y].push(new block("white",x,y,false));
         }else{
-            LANDSCAPE[y].push(new block("black",x,y));
+            LANDSCAPE[y].push(new block("hsl("+(35+randomrange(-5,5))+", "+randomrange(50,90)+"%, "+((((y-(generatedland[x]))+20)/land_y)*255/3)+"%)",x,y,true));
+            // LANDSCAPE[y].push(new block("hsl(35, "+randomrange(60,90)+"%, "+(((y-(generatedland[x]))/land_y)*255)+"%)",x,y,true));
         }
     }
 }   
@@ -99,6 +99,8 @@ class player{
         this.xa = 0;
         this.ya = 0;
         this.dir = 0;
+        this.dira = 0;
+        this.shotstep = 0;
         PLAYERS.push(this);        
     }
 
@@ -106,6 +108,8 @@ class player{
         
         let xpos = Math.floor(this.x/x_scale);
         let ypos = Math.floor(this.y/y_scale);
+        this.shotstep ++;
+        
         
         
         
@@ -124,32 +128,38 @@ class player{
         }
 
         if(KEYS["ArrowRight"]){
-            this.dir += Math.PI/40;
+            this.dira += 0.01;
         }
 
         if(KEYS["ArrowLeft"]){
-            this.dir -= Math.PI/40;
+            this.dira -= 0.01;
         }
 
         if(KEYS[" "]){
-            new explosion_particle(this.x+this.size/2,this.y+this.size/2,this.dir,x_scale/2.5 ,"none",3,5);
+            if(this.shotstep > 10){
+            this.shotstep = 0
+            new explosion_particle(this.x,this.y,this.dir,x_scale/2.1 ,"none",this.size,5);
+            }
         }
 
         if(KEYS["f"]){
-            new projectile(this.x,this.y,this.dir,"grenade");
+            if(this.shotstep > 20){
+                this.shotstep = 0
+                new projectile(this.x,this.y,this.dir,"grenade");
+            }
         }
         
         
         if(ypos+this.size !== land_y && xpos+this.size < land_x){
             for(let sizeposy= 0;sizeposy<this.size ; sizeposy++){
-                if(LANDSCAPE[ypos+sizeposy][xpos+this.size].color ==="black" ){
+                if(LANDSCAPE[ypos+sizeposy][xpos+this.size].collision){
                     this.x = (xpos*x_scale)-0.0001;
                     this.xa = 0;
                 }
             }
             
             for(let sizeposy= 0;sizeposy<this.size ; sizeposy++){
-                if(LANDSCAPE[ypos+sizeposy][xpos].color ==="black" ){
+                if(LANDSCAPE[ypos+sizeposy][xpos].collision){
                     this.x = ((xpos+1)*x_scale)+0.0001
                     this.xa = 0;
                 }
@@ -157,14 +167,14 @@ class player{
             
             
             for(let sizeposx= 0;sizeposx<this.size+1 ; sizeposx++){
-                if(LANDSCAPE[ypos+this.size][xpos+sizeposx].color ==="black" ){
+                if(LANDSCAPE[ypos+this.size][xpos+sizeposx].collision){
                     this.y = (ypos*y_scale)-0.0001;
                     this.ya = 0
                 }
             }
             
             for(let sizeposx= 0;sizeposx<this.size+1 ; sizeposx++){
-                if(LANDSCAPE[ypos][xpos+sizeposx].color ==="black" ){
+                if(LANDSCAPE[ypos][xpos+sizeposx].collision){
                     this.y = ((ypos+1)*y_scale)+0.0001
                     this.ya = 0;
                 }
@@ -175,9 +185,11 @@ class player{
         
         this.ya *= 0.99;
         this.xa *= 0.9;
+        this.dira *= 0.9
         
         this.y += this.ya;
         this.x += this.xa;
+        this.dir += this.dira;
         
         if(this.y >= canvas2.height-y_scale*this.size){
             this.y = canvas2.height-y_scale*this.size;
@@ -277,7 +289,7 @@ class projectile {
             
             this.ya += this.grav
 
-            if(LANDSCAPE[ypos][xpos].color === "black"){
+            if(LANDSCAPE[ypos][xpos].collision){
                 createcricle(this.x,this.y,30);
                 PROJECTILES.splice(i,1);
             }
@@ -312,13 +324,13 @@ class projectile {
 class explosion_particle{
     
     constructor(x,y,dir,vel,grav,size,speeddeath){
-        this.x = x;
-        this.y = y;
+        this.x = x-size;
+        this.y = y-size;
         this.dir = dir;
         this.vel = vel;
         this.grav = grav;
-        this.speeddeath = speeddeath;
         this.size = size;
+        this.speeddeath = speeddeath;
         this.xa = 0;
         this.ya = 0;
         EXPL_PARTICLE.push(this);
@@ -366,7 +378,7 @@ class explosion_particle{
         if(ypos+this.size < land_y && xpos+this.size < land_x){
             for(let sizeposx= 0;sizeposx<this.size+1 ; sizeposx++){
             for(let sizeposy= 0;sizeposy<this.size+1 ; sizeposy++){  
-            LANDSCAPE[ypos+sizeposy][xpos+sizeposx].changecolor("white"); 
+            LANDSCAPE[ypos+sizeposy][xpos+sizeposx].destroy();
             }}       
         }
 
@@ -394,20 +406,24 @@ function createrectanlge(x,y,width,height){
     for(let posy= 0;posy<height; posy++){  
     for(let posx= 0;posx<width; posx++){
         if(x+posx<land_x && y+posy < land_y){
-            LANDSCAPE[x+posx][y+posy].changecolor("white"); 
+            LANDSCAPE[x+posx][y+posy].destroy();
         }
     }}   
 }
 
 function createcricle(x,y,range){
 
-    x = Math.floor(x/x_scale)-Math.floor(range/x_scale*2);
-    y = Math.floor(y/y_scale)-Math.floor(range/x_scale*2);
+    x = Math.floor(x/x_scale)-Math.round(range/2);
+    y = Math.floor(y/y_scale)-Math.round(range/2);
     for(let posy= 0;posy<range; posy++){  
     for(let posx= 0;posx<range; posx++){
         if(x+posx<land_x && y+posy < land_y){
-        if(distance(x+posx,x+(range/2),y+posy,y+(range/2)) < range/2){
-            LANDSCAPE[y+posy][x+posx].changecolor("white");
+        if(distance(x+posx,x+(range/2),y+posy,y+(range/2)) < range/2.15){
+            LANDSCAPE[y+posy][x+posx].destroy();
+        }else if(distance(x+posx,x+(range/2),y+posy,y+(range/2)) < range/2){
+            if(LANDSCAPE[y+posy][x+posx].collision){
+                LANDSCAPE[y+posy][x+posx].changecolor("hsl("+(35+randomrange(-5,5))+", "+randomrange(50,90)+"%, 10%")
+            }
         }
         }
         else{
